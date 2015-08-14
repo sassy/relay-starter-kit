@@ -1,9 +1,12 @@
+import CheckHidingSpotForTreasureMutation from
+  '../mutations/CheckHidingSpotForTreasureMutation';
+
 class App extends React.Component {
   _getHidingSpotStyle(hidingSpot) {
     var color;
     if (this.props.relay.hasOptimisticUpdate(hidingSpot)) {
       color = 'lightGrey';
-    } else if (HidingSpot.hasBeenChecked) {
+    } else if (hidingSpot.hasBeenChecked) {
       if (hidingSpot.hasTreasure) {
         color = 'green';
       } else {
@@ -34,7 +37,7 @@ class App extends React.Component {
   }
   _hasFoundTreasure() {
     return (
-      this.this.props.game.hidingSpots.edges.some(edge => edge.node.hasTreasure)
+      this.props.game.hidingSpots.edges.some(edge => edge.node.hasTreasure)
     );
   }
   _isGameOver() {
@@ -73,7 +76,7 @@ class App extends React.Component {
 
 export default Relay.createContainer(App, {
   fragments: {
-    viewer: () => Relay.QL`
+    game: () => Relay.QL`
       fragment on Game {
         turnsRemaining,
         hidingSpots(first: 9) {
@@ -82,11 +85,11 @@ export default Relay.createContainer(App, {
               hasBeenChecked,
               hasTreasure,
               id,
-              ${CHeckHidingSpotForTreasureMutation.getFragment('hidingSpot')},
+              ${CheckHidingSpotForTreasureMutation.getFragment('hidingSpot')},
             },
           },
         },
-        ${CHeckHidingSpotForTreasureMutation.getFragment('game')},
+        ${CheckHidingSpotForTreasureMutation.getFragment('game')},
       }
     `,
   },

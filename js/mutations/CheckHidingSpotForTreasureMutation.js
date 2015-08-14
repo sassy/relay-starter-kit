@@ -6,7 +6,7 @@ export default class CheckHidingSpotForTreasureMutation extends Relay.Mutation {
         turnsRemaining,
       }
     `,
-    hidingSPot: () => Relay.QL`
+    hidingSpot: () => Relay.QL`
       fragment on HidingSpot {
         id,
       }
@@ -20,7 +20,7 @@ export default class CheckHidingSpotForTreasureMutation extends Relay.Mutation {
   }
   getFatQuery() {
     return Relay.QL`
-      fragment on CheckHidingSpotForTreasurePayload {
+      fragment on checkHidingSpotForTreasurePayload {
         hidingSpot {
           hasBeenChecked,
           hasTreasure,
@@ -35,14 +35,14 @@ export default class CheckHidingSpotForTreasureMutation extends Relay.Mutation {
     return [{
       type: 'FIELDS_CHANGE',
       fieldIDs: {
-        hidingSpot: this.props.HidingSpot.id,
+        hidingSpot: this.props.hidingSpot.id,
         game: this.props.game.id,
       }
     }];
   }
   getVariables() {
-    retrun {
-      id: this.this.props.hidingSpot.id;
+    return {
+      id: this.props.hidingSpot.id,
     };
   }
   getOptimisticResponse() {
