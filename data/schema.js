@@ -30,13 +30,12 @@ import {
 } from 'graphql-relay';
 
 import {
-  // Import methods that your schema can use to interact with your database
-  User,
-  Widget,
-  getUser,
-  getViewer,
-  getWidget,
-  getWidgets,
+  Game,
+  HidingSpot,
+  checkHidingSpotForTreasure,
+  getGame,
+  getHidingSpot,
+  getTurnsRemaining,
 } from './database';
 
 /**
@@ -48,19 +47,19 @@ import {
 var {nodeInterface, nodeField} = nodeDefinitions(
   (globalId) => {
     var {type, id} = fromGlobalId(globalId);
-    if (type === 'User') {
-      return getUser(id);
-    } else if (type === 'Widget') {
-      return getWidget(id);
+    if (type === 'Game') {
+      return getGame(id);
+    } else if (type === 'HidingSpot') {
+      return getHidingSpot(id);
     } else {
       return null;
     }
   },
   (obj) => {
-    if (obj instanceof User) {
-      return userType;
-    } else if (obj instanceof Widget)  {
-      return widgetType;
+    if (obj instanceof Game) {
+      return gameType;
+    } else if (obj instanceof HidingSpot)  {
+      return hidingSpotType;
     } else {
       return null;
     }
@@ -71,30 +70,47 @@ var {nodeInterface, nodeField} = nodeDefinitions(
  * Define your own types here
  */
 
-var userType = new GraphQLObjectType({
-  name: 'User',
-  description: 'A person who uses our app',
+var gameType = new GraphQLObjectType({
+  name: 'Game',
+  description: 'A treasure search game',
   fields: () => ({
-    id: globalIdField('User'),
-    widgets: {
-      type: widgetConnection,
-      description: 'A person\'s collection of widgets',
+    id: globalIdField('Game'),
+    hidingSpots: {
+      type: hidingSpotConnection,
+      description: 'Places where treasure might be hidden',
       args: connectionArgs,
-      resolve: (_, args) => connectionFromArray(getWidgets(), args),
+      resolve: (game, args) => connectionFromArray(getHidingSpots(), args),
+    },
+    turnsRemaining: {
+      type: GraphQLInt,
+      description: 'The number of turns a player has left to find the treasure',
+      resolve: () => getTurnsRemaining(),
     },
   }),
   interfaces: [nodeInterface],
 });
 
-var widgetType = new GraphQLObjectType({
-  name: 'Widget',
-  description: 'A shiny widget',
+var hidingSpotType = new GraphQLObjectType({
+  name: 'HidingSpot',
+  description: 'A place where you might find treasure',
   fields: () => ({
-    id: globalIdField('Widget'),
-    name: {
-      type: GraphQLString,
-      description: 'The name of the widget',
+    id: globalIdField('HidingSpot'),
+    hasBeenChecked: {
+      type: GraphQLBoolean,
+      description: 'True this spot has already been checked for treasure',
+      resolve: (hidingSpot) => hidingSpot.hasBeenChecked,
     },
+    hasTreasure: {
+      type: GraphQLBoolean,
+      description: 'True if this hiding spot holds treasure',
+      resolve: (hidingSpot) => {
+        if (hidingSpot.hasBeenChecked) {
+          return hidingSpot.hasTreasure;
+        } else {
+          return null;
+        }
+      },
+    }
   }),
   interfaces: [nodeInterface],
 });
@@ -102,8 +118,8 @@ var widgetType = new GraphQLObjectType({
 /**
  * Define your own connection types here
  */
-var {connectionType: widgetConnection} =
-  connectionDefinitions({name: 'Widget', nodeType: widgetType});
+var {connectionType: hidingSpotConnection} =
+  connectionDefinitions({name: 'HidingSpot', nodeType: hidingSpotType});
 
 /**
  * This is the type that will be the root of our query,
@@ -114,11 +130,33 @@ var queryType = new GraphQLObjectType({
   fields: () => ({
     node: nodeField,
     // Add your own root fields here
-    viewer: {
-      type: userType,
-      resolve: () => getViewer(),
+    game: {
+      type: gameType,
+      resolve: () => getGame(),
     },
   }),
+});
+
+var CheckHidingSpotForTreasureMutation = mutationWithClientMutationId({
+  name: 'checkHidingSpotForTreasure',
+  inputFields: {
+    id: { type: new GraphQLNonNull(GraphQLID)},
+  },
+  outputFields: {
+    hidingSpot: {
+      type: hidingSpotType,
+      resolve: ({localHidingSpotId}) => getHidingSpot(localHidingSpotId),
+    },
+    game: {
+      type: gameType,
+      resolve: () => getGame(),
+    }
+  },
+  mutateAndGetPayload: ({id, text}) => {
+    var localHidingSpotId = fromGlobalId(id).id;
+    checkHidingSpotForTreasure(localHidingSpotId);
+    return {localHidingSpotId};
+  },
 });
 
 /**
@@ -128,7 +166,7 @@ var queryType = new GraphQLObjectType({
 var mutationType = new GraphQLObjectType({
   name: 'Mutation',
   fields: () => ({
-    // Add your own mutations here
+    checkHidingSpotForTreasure: CheckHidingSpotForTreasureMutation,
   })
 });
 
