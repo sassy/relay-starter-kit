@@ -35,6 +35,7 @@ import {
   checkHidingSpotForTreasure,
   getGame,
   getHidingSpot,
+  getHidingSpots,
   getTurnsRemaining,
 } from './database';
 
